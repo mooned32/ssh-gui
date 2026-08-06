@@ -1,0 +1,38 @@
+[project]
+name = "ssh-gui"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.12"
+dependencies = [
+    "ttkbootstrap>=2.2.0",
+]
+
+[project.scripts]
+ssh-gui = "ssh_gui:main"
+
+[build-system]
+requires = ["uv_build>=0.12.2,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "S", "B", "N"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[tool.basedpyright]
+include = []
+pythonVersion = "3.12"
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.39.9",
+    "mypy>=2.3.0",
+    "pyinstaller>=6.21.0",
+    "ruff>=0.16.1",
+]
