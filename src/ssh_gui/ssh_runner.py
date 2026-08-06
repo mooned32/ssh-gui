@@ -36,7 +36,10 @@ class SSHRunner:
     def stop(self) -> None:
         if self.process:
             self.process.terminate()
-            _ = self.process.wait(timeout=2)
+            try:
+                self.process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
             self.process = None
 
     def is_running(self) -> bool:

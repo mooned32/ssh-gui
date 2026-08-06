@@ -1,4 +1,6 @@
 import json
+import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
@@ -20,8 +22,18 @@ class Config:
     tunnels: list[Tunnel] = field(default_factory=list)
 
 
+def get_config_dir() -> Path:
+    if sys.platform == "win32":
+        appdata = os.environ.get("APPDATA")
+        base = Path(appdata) if appdata else Path.home() / "AppData" / "Roaming"
+    else:
+        xdg_config = os.environ.get("XDG_CONFIG_HOME")
+        base = Path(xdg_config) if xdg_config else Path.home() / ".config"
+    return base / "ssh-gui"
+
+
 def get_config_path() -> Path:
-    config_dir = Path.home() / ".ssh-gui"
+    config_dir = get_config_dir()
     config_dir.mkdir(parents=True, exist_ok=True)
     return config_dir / "config.json"
 
@@ -38,28 +50,28 @@ def load_config() -> Config:
         if not isinstance(data_raw, dict):
             return Config()
 
-        data = cast(dict[str, object], data_raw)
+        data: dict[str, object] = cast(dict[str, object], data_raw)
 
-        server_obj = data.get("server", "")
+        server_obj: object = data.get("server", "")
         server = str(server_obj) if isinstance(server_obj, str) else ""
 
-        user_obj = data.get("user", "")
+        user_obj: object = data.get("user", "")
         user = str(user_obj) if isinstance(user_obj, str) else ""
 
-        key_obj = data.get("key_path", "")
+        key_obj: object = data.get("key_path", "")
         key_path = str(key_obj) if isinstance(key_obj, str) else ""
 
         tunnels: list[Tunnel] = []
-        raw_tunnels = data.get("tunnels")
+        raw_tunnels: object = data.get("tunnels")
         if isinstance(raw_tunnels, list):
-            raw_list = cast(list[object], raw_tunnels)
+            raw_list: list[object] = cast(list[object], raw_tunnels)
             for item in raw_list:
                 if isinstance(item, dict):
-                    t_dict = cast(dict[str, object], item)
-                    c_obj = t_dict.get("comment", "")
-                    rh_obj = t_dict.get("remote_host", "")
-                    rp_obj = t_dict.get("remote_port", 0)
-                    lp_obj = t_dict.get("local_port", 0)
+                    t_dict: dict[str, object] = cast(dict[str, object], item)
+                    c_obj: object = t_dict.get("comment", "")
+                    rh_obj: object = t_dict.get("remote_host", "")
+                    rp_obj: object = t_dict.get("remote_port", 0)
+                    lp_obj: object = t_dict.get("local_port", 0)
 
                     comment = str(c_obj) if isinstance(c_obj, str) else ""
                     rhost = str(rh_obj) if isinstance(rh_obj, str) else ""

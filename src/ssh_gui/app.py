@@ -1,8 +1,10 @@
-from typing import cast
 from tkinter import messagebox
-from .config import Config, Tunnel, load_config, save_config
-from .ssh_runner import SSHRunner
-from .ui import AddTunnelDialog, MainWindow
+from typing import cast
+
+from ssh_gui.config import Config, Tunnel, load_config, save_config
+from ssh_gui.ssh_runner import SSHRunner
+from ssh_gui.ui import AddTunnelDialog, MainWindow
+
 
 class App:
     config: Config
@@ -24,16 +26,27 @@ class App:
         self.ui.btn_run.config(command=self.toggle_ssh)
 
     def _load_to_ui(self) -> None:
+        self.ui.ent_server.delete(0, "end")
         self.ui.ent_server.insert(0, self.config.server)
+
+        self.ui.ent_user.delete(0, "end")
         self.ui.ent_user.insert(0, self.config.user)
+
+        self.ui.ent_key.delete(0, "end")
         self.ui.ent_key.insert(0, self.config.key_path)
 
-        for t in self.config.tunnels:
+        for item in self.ui.tree.get_children():
+            self.ui.tree.delete(item)
+
+        for i, t in enumerate(self.config.tunnels):
+            tag = "even" if i % 2 == 0 else "odd"
             self.ui.tree.insert(
                 "",
                 "end",
                 values=(t.comment, t.remote_host, t.remote_port, t.local_port),
+                tags=(tag,),
             )
+        self.ui.refresh_tree_tags()
 
     def save_data(self) -> None:
         self.config.server = self.ui.ent_server.get().strip()
@@ -62,11 +75,11 @@ class App:
 
     def show_add_dialog(self) -> None:
         def on_add(comment: str, rhost: str, rport: int, lport: int) -> None:
-            self.ui.tree.insert(
-                "", "end", values=(comment, rhost, rport, lport)
-            )
+            count = len(self.ui.tree.get_children())
+            tag = "even" if count % 2 == 0 else "odd"
+            self.ui.tree.insert("", "end", values=(comment, rhost, rport, lport), tags=(tag,))
 
-        _dialog = AddTunnelDialog(self.ui, on_add)
+        AddTunnelDialog(self.ui, on_add)
 
     def delete_selected(self) -> None:
         selected = self.ui.tree.selection()
@@ -75,11 +88,23 @@ class App:
         for item in selected:
             self.ui.tree.delete(item)
 
+        for i, item in enumerate(self.ui.tree.get_children()):
+            tag = "even" if i % 2 == 0 else "odd"
+            self.ui.tree.item(item, tags=(tag,))
+
     def toggle_ssh(self) -> None:
         if self.ssh.is_running():
             self.ssh.stop()
             self._update_run_button_state()
         else:
+            server = self.ui.ent_server.get().strip()
+            user = self.ui.ent_user.get().strip()
+            if not server or not user:
+                messagebox.showerror(
+                    "Ошибка", "Заполните поля 'Сервер' и 'Пользователь'.", parent=self.ui
+                )
+                return
+
             self.save_data()
             try:
                 self.ssh.start(self.config)
@@ -89,27 +114,28 @@ class App:
 
     def _update_run_button_state(self) -> None:
         if self.ssh.is_running():
-            self.ui.btn_run.config(text="⏹ Стоп", style="Danger.TButton")
+            self.ui.btn_run.config(text="⏹", style="Run.danger.TButton")
             self.ui.ent_server.config(state="disabled")
             self.ui.ent_user.config(state="disabled")
             self.ui.ent_key.config(state="disabled")
+            self.ui.btn_browse.config(state="disabled")
         else:
-            self.ui.btn_run.config(text="▶ Запуск", style="Success.TButton")
+            self.ui.btn_run.config(text="▶", style="Run.dark.TButton")
             self.ui.ent_server.config(state="normal")
             self.ui.ent_user.config(state="normal")
             self.ui.ent_key.config(state="normal")
+            self.ui.btn_browse.config(state="normal")
 
     def _check_ssh_status(self) -> None:
-        raw_btn_text = self.ui.btn_run.cget("text")
-        btn_text = str(raw_btn_text) if isinstance(raw_btn_text, str) else ""
+        btn_text = str(self.ui.btn_run.cget("text"))
 
-        if "Стоп" in btn_text and not self.ssh.is_running():
+        if btn_text == "⏹" and not self.ssh.is_running():
             self._update_run_button_state()
             messagebox.showwarning(
                 "Внимание", "Процесс SSH был непредвиденно завершен.", parent=self.ui
             )
 
-        _alarm_id = self.ui.after(1000, self._check_ssh_status)
+        self.ui.after(1000, self._check_ssh_status)
 
     def run(self) -> None:
         self.ui.mainloop()
