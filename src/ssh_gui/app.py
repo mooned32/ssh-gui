@@ -1,5 +1,5 @@
-from tkinter import messagebox
-from typing import cast
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem
 
 from ssh_gui.config import Config, Tunnel, load_config, save_config
 from ssh_gui.ssh_runner import SSHRunner
@@ -10,98 +10,129 @@ class App:
     config: Config
     ssh: SSHRunner
     ui: MainWindow
+    _timer: QTimer
+    _was_running: bool
 
     def __init__(self) -> None:
         self.config = load_config()
         self.ssh = SSHRunner()
         self.ui = MainWindow()
+        self._was_running = False
         self._bind_events()
         self._load_to_ui()
-        self._check_ssh_status()
+        self._update_run_button_state()
+        self._was_running = self.ssh.is_running()
+
+        self._timer = QTimer(self.ui)
+        self._timer.setInterval(1000)
+        _ = self._timer.timeout.connect(self._check_ssh_status)
+        self._timer.start()
 
     def _bind_events(self) -> None:
-        self.ui.btn_save.config(command=self.save_data)
-        self.ui.btn_add.config(command=self.show_add_dialog)
-        self.ui.btn_delete.config(command=self.delete_selected)
-        self.ui.btn_run.config(command=self.toggle_ssh)
+        _ = self.ui.btn_save.clicked.connect(self.save_data)
+        _ = self.ui.btn_add.clicked.connect(self.show_add_dialog)
+        _ = self.ui.btn_delete.clicked.connect(self.delete_selected)
+        _ = self.ui.btn_run.clicked.connect(self.toggle_ssh)
 
     def _load_to_ui(self) -> None:
-        self.ui.ent_server.delete(0, "end")
-        self.ui.ent_server.insert(0, self.config.server)
+        self.ui.ent_server.setText(self.config.server)
+        self.ui.ent_user.setText(self.config.user)
+        self.ui.ent_key.setText(self.config.key_path)
 
-        self.ui.ent_user.delete(0, "end")
-        self.ui.ent_user.insert(0, self.config.user)
-
-        self.ui.ent_key.delete(0, "end")
-        self.ui.ent_key.insert(0, self.config.key_path)
-
-        for item in self.ui.tree.get_children():
-            self.ui.tree.delete(item)
-
-        for i, t in enumerate(self.config.tunnels):
-            tag = "even" if i % 2 == 0 else "odd"
-            self.ui.tree.insert(
-                "",
-                "end",
-                values=(t.comment, t.remote_host, t.remote_port, t.local_port),
-                tags=(tag,),
-            )
-        self.ui.refresh_tree_tags()
+        self.ui.table.setRowCount(0)
+        for t in self.config.tunnels:
+            row = self.ui.table.rowCount()
+            self.ui.table.insertRow(row)
+            self.ui.table.setItem(row, 0, QTableWidgetItem(t.comment))
+            self.ui.table.setItem(row, 1, QTableWidgetItem(t.remote_host))
+            self.ui.table.setItem(row, 2, QTableWidgetItem(str(t.remote_port)))
+            self.ui.table.setItem(row, 3, QTableWidgetItem(str(t.local_port)))
+            for col in range(4):
+                item = self.ui.table.item(row, col)
+                if item is not None:
+                    item.setTextAlignment(int(item.textAlignment()) | 0)
+            # center ports
+            for col in (2, 3):
+                item = self.ui.table.item(row, col)
+                if item is not None:
+                    item.setTextAlignment(int(Qt.AlignmentFlag.AlignCenter))
 
     def save_data(self) -> None:
-        self.config.server = self.ui.ent_server.get().strip()
-        self.config.user = self.ui.ent_user.get().strip()
-        self.config.key_path = self.ui.ent_key.get().strip()
+        self.config.server = self.ui.ent_server.text().strip()
+        self.config.user = self.ui.ent_user.text().strip()
+        self.config.key_path = self.ui.ent_key.text().strip()
 
         self.config.tunnels = []
-        for item in self.ui.tree.get_children():
-            raw_item = self.ui.tree.item(item, "values")
-            if isinstance(raw_item, (list, tuple)) and len(raw_item) >= 4:
-                item_tuple = cast(tuple[object, object, object, object], raw_item)
-                comment = str(item_tuple[0])
-                rhost = str(item_tuple[1])
-                rport = int(str(item_tuple[2]))
-                lport = int(str(item_tuple[3]))
-                self.config.tunnels.append(
-                    Tunnel(
-                        comment=comment,
-                        remote_host=rhost,
-                        remote_port=rport,
-                        local_port=lport,
-                    )
+        for row in range(self.ui.table.rowCount()):
+            comment_item = self.ui.table.item(row, 0)
+            rhost_item = self.ui.table.item(row, 1)
+            rport_item = self.ui.table.item(row, 2)
+            lport_item = self.ui.table.item(row, 3)
+            if (
+                comment_item is None
+                or rhost_item is None
+                or rport_item is None
+                or lport_item is None
+            ):
+                continue
+            assert comment_item is not None  # noqa: S101
+            assert rhost_item is not None  # noqa: S101
+            assert rport_item is not None  # noqa: S101
+            assert lport_item is not None  # noqa: S101
+            comment = comment_item.text()
+            rhost = rhost_item.text()
+            try:
+                rport = int(rport_item.text())
+                lport = int(lport_item.text())
+            except ValueError:
+                continue
+            self.config.tunnels.append(
+                Tunnel(
+                    comment=comment,
+                    remote_host=rhost,
+                    remote_port=rport,
+                    local_port=lport,
                 )
+            )
         save_config(self.config)
-        messagebox.showinfo("Сохранение", "Настройки успешно сохранены!", parent=self.ui)
+        _ = QMessageBox.information(self.ui, "Сохранение", "Настройки успешно сохранены!")
 
     def show_add_dialog(self) -> None:
         def on_add(comment: str, rhost: str, rport: int, lport: int) -> None:
-            count = len(self.ui.tree.get_children())
-            tag = "even" if count % 2 == 0 else "odd"
-            self.ui.tree.insert("", "end", values=(comment, rhost, rport, lport), tags=(tag,))
+            row = self.ui.table.rowCount()
+            self.ui.table.insertRow(row)
+            self.ui.table.setItem(row, 0, QTableWidgetItem(comment))
+            self.ui.table.setItem(row, 1, QTableWidgetItem(rhost))
+            rport_item = QTableWidgetItem(str(rport))
+            rport_item.setTextAlignment(int(Qt.AlignmentFlag.AlignCenter))
+            self.ui.table.setItem(row, 2, rport_item)
+            lport_item = QTableWidgetItem(str(lport))
+            lport_item.setTextAlignment(int(Qt.AlignmentFlag.AlignCenter))
+            self.ui.table.setItem(row, 3, lport_item)
 
-        AddTunnelDialog(self.ui, on_add)
+        dlg = AddTunnelDialog(self.ui, on_add)
+        _ = dlg.exec()
 
     def delete_selected(self) -> None:
-        selected = self.ui.tree.selection()
-        if not selected:
-            return
-        for item in selected:
-            self.ui.tree.delete(item)
-
-        for i, item in enumerate(self.ui.tree.get_children()):
-            tag = "even" if i % 2 == 0 else "odd"
-            self.ui.tree.item(item, tags=(tag,))
+        selected = self.ui.table.currentRow()
+        if selected < 0:
+            # try selected ranges
+            ranges = self.ui.table.selectedRanges()
+            if not ranges:
+                return
+            selected = ranges[0].topRow()
+        self.ui.table.removeRow(selected)
 
     def toggle_ssh(self) -> None:
         if self.ssh.is_running():
             self.ssh.stop()
             self._update_run_button_state()
         else:
-            server = self.ui.ent_server.get().strip()
-            user = self.ui.ent_user.get().strip()
+            server = self.ui.ent_server.text().strip()
+            user = self.ui.ent_user.text().strip()
             if not server or not user:
-                messagebox.showerror(
-                    "Ошибка", "Заполните поля 'Сервер' и 'Пользователь'.", parent=self.ui
+                _ = QMessageBox.critical(
+                    self.ui, "Ошибка", "Заполните поля 'Сервер' и 'Пользователь'."
                 )
                 return
 
@@ -110,33 +141,27 @@ class App:
                 self.ssh.start(self.config)
                 self._update_run_button_state()
             except Exception as e:
-                messagebox.showerror("Ошибка", f"Ошибка запуска SSH: {e}", parent=self.ui)
+                _ = QMessageBox.critical(self.ui, "Ошибка", f"Ошибка запуска SSH: {e}")
 
     def _update_run_button_state(self) -> None:
-        if self.ssh.is_running():
-            self.ui.btn_run.config(text="⏹", style="Run.danger.TButton")
-            self.ui.ent_server.config(state="disabled")
-            self.ui.ent_user.config(state="disabled")
-            self.ui.ent_key.config(state="disabled")
-            self.ui.btn_browse.config(state="disabled")
-        else:
-            self.ui.btn_run.config(text="▶", style="Run.dark.TButton")
-            self.ui.ent_server.config(state="normal")
-            self.ui.ent_user.config(state="normal")
-            self.ui.ent_key.config(state="normal")
-            self.ui.btn_browse.config(state="normal")
+        running = self.ssh.is_running()
+        self.ui.set_running_state(running=running)
+        self._was_running = running
 
     def _check_ssh_status(self) -> None:
-        btn_text = str(self.ui.btn_run.cget("text"))
-
-        if btn_text == "⏹" and not self.ssh.is_running():
+        running = self.ssh.is_running()
+        if self._was_running and not running:
             self._update_run_button_state()
-            messagebox.showwarning(
-                "Внимание", "Процесс SSH был непредвиденно завершен.", parent=self.ui
-            )
-
-        self.ui.after(1000, self._check_ssh_status)
+            _ = QMessageBox.warning(self.ui, "Внимание", "Процесс SSH был непредвиденно завершен.")
+        elif self._was_running != running:
+            self._update_run_button_state()
+        self._was_running = running
 
     def run(self) -> None:
-        self.ui.mainloop()
+        self.ui.show()
+        # Stop SSH when window closes is handled via timer parent; ensure cleanup
+        # Caller should exec QApplication
+
+    def stop(self) -> None:
+        self._timer.stop()
         self.ssh.stop()

@@ -2,8 +2,8 @@
 name = "ssh-gui"
 version = "0.1.0"
 description = "SSH Tunnel Manager GUI"
-requires-python = ">=3.14"
-dependencies = ["ttkbootstrap>=2.2.0"]
+requires-python = ">=3.12"
+dependencies = ["PyQt6>=6.6.0"]
 
 [project.scripts]
 ssh-gui = "ssh_gui:main"
@@ -24,7 +24,7 @@ python_version = "3.14"
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["ttkbootstrap", "ttkbootstrap.*", "PyInstaller", "PyInstaller.*"]
+module = ["PyQt6", "PyQt6.*", "PyInstaller", "PyInstaller.*"]
 ignore_missing_imports = true
 disallow_untyped_calls = false
 

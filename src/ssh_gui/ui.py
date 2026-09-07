@@ -1,219 +1,254 @@
-# mypy: disable-error-code="no-untyped-call"
-import tkinter as tk
 from collections.abc import Callable
-from tkinter import filedialog, messagebox
 
-import ttkbootstrap as tb
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QDialog,
+    QFileDialog,
+    QGridLayout,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 
-class AddTunnelDialog(tb.Toplevel):
+class AddTunnelDialog(QDialog):
     on_add: Callable[[str, str, int, int], None]
-    ent_comment: tb.Entry
-    ent_rhost: tb.Entry
-    ent_rport: tb.Entry
-    ent_lport: tb.Entry
+    ent_comment: QLineEdit
+    ent_rhost: QLineEdit
+    ent_rport: QLineEdit
+    ent_lport: QLineEdit
 
     def __init__(
-        self, parent: tk.Tk | tk.Toplevel | None, on_add: Callable[[str, str, int, int], None]
+        self,
+        parent: QWidget | None,
+        on_add: Callable[[str, str, int, int], None],
     ) -> None:
-        super().__init__(master=parent, title="Добавить туннель")
-        self.geometry("440x360")
-        self.minsize(400, 340)
-        self.resizable(False, False)
+        super().__init__(parent)
+        self.setWindowTitle("Добавить туннель")
+        self.setMinimumSize(440, 360)
+        self.setMaximumSize(440, 360)
+        self.setModal(True)
         self.on_add = on_add
 
-        if parent is not None:
-            self.transient(parent)
-            self.grab_set()
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setSpacing(8)
 
-        btn_frame = tb.Frame(self)
-        btn_frame.pack(side="bottom", fill="x", pady=15, padx=20)
+        # Form fields
+        lbl_comment = QLabel("Комментарий:")
+        self.ent_comment = QLineEdit()
+        layout.addWidget(lbl_comment)
+        layout.addWidget(self.ent_comment)
 
-        btn_add = tb.Button(
-            btn_frame,
-            text="Добавить",
-            bootstyle="dark",
-            command=self._submit,
-            width=12,
-        )
-        btn_add.pack(side="right", padx=(10, 0))
+        lbl_rhost = QLabel("Адрес Ресурса:")
+        self.ent_rhost = QLineEdit()
+        layout.addWidget(lbl_rhost)
+        layout.addWidget(self.ent_rhost)
 
-        btn_cancel = tb.Button(
-            btn_frame,
-            text="Отмена",
-            bootstyle="secondary",
-            command=self.destroy,
-            width=12,
-        )
-        btn_cancel.pack(side="right")
+        lbl_rport = QLabel("Порт Ресурса:")
+        self.ent_rport = QLineEdit()
+        layout.addWidget(lbl_rport)
+        layout.addWidget(self.ent_rport)
 
-        form_frame = tb.Frame(self)
-        form_frame.pack(side="top", fill="both", expand=True, padx=20, pady=(15, 0))
+        lbl_lport = QLabel("Порт точки входа (наш порт):")
+        self.ent_lport = QLineEdit()
+        layout.addWidget(lbl_lport)
+        layout.addWidget(self.ent_lport)
 
-        lbl_comment = tb.Label(form_frame, text="Комментарий:")
-        lbl_comment.pack(pady=(5, 2), anchor="w")
-        self.ent_comment = tb.Entry(form_frame, font=("Sans", 10))
-        self.ent_comment.pack(fill="x", pady=(0, 8))
+        layout.addStretch()
 
-        lbl_rhost = tb.Label(form_frame, text="Адрес Ресурса:")
-        lbl_rhost.pack(pady=(0, 2), anchor="w")
-        self.ent_rhost = tb.Entry(form_frame, font=("Sans", 10))
-        self.ent_rhost.pack(fill="x", pady=(0, 8))
+        # Buttons
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
 
-        lbl_rport = tb.Label(form_frame, text="Порт Ресурса:")
-        lbl_rport.pack(pady=(0, 2), anchor="w")
-        self.ent_rport = tb.Entry(form_frame, font=("Sans", 10))
-        self.ent_rport.pack(fill="x", pady=(0, 8))
+        btn_cancel = QPushButton("Отмена")
+        btn_cancel.setFixedWidth(110)
+        _ = btn_cancel.clicked.connect(self.reject)
+        btn_layout.addWidget(btn_cancel)
 
-        lbl_lport = tb.Label(form_frame, text="Порт точки входа (наш порт):")
-        lbl_lport.pack(pady=(0, 2), anchor="w")
-        self.ent_lport = tb.Entry(form_frame, font=("Sans", 10))
-        self.ent_lport.pack(fill="x", pady=(0, 8))
+        btn_add = QPushButton("Добавить")
+        btn_add.setFixedWidth(110)
+        btn_add.setStyleSheet("font-weight: bold;")
+        _ = btn_add.clicked.connect(self._submit)
+        btn_layout.addWidget(btn_add)
 
-        self.ent_comment.focus_set()
+        layout.addLayout(btn_layout)
+
+        self.ent_comment.setFocus()
 
     def _submit(self) -> None:
         try:
-            comment = self.ent_comment.get().strip()
-            rhost = self.ent_rhost.get().strip()
-            rport = int(self.ent_rport.get().strip())
-            lport = int(self.ent_lport.get().strip())
+            comment = self.ent_comment.text().strip()
+            rhost = self.ent_rhost.text().strip()
+            rport = int(self.ent_rport.text().strip())
+            lport = int(self.ent_lport.text().strip())
             if not comment or not rhost:
                 raise ValueError("Заполните текстовые поля")
             self.on_add(comment, rhost, rport, lport)
-            self.destroy()
+            self.accept()
         except ValueError:
-            messagebox.showerror(
+            _ = QMessageBox.critical(
+                self,
                 "Ошибка",
                 "Проверьте правильность введенных данных (порты должны быть числами).",
-                parent=self,
             )
 
 
-class MainWindow(tb.Window):
-    ent_server: tb.Entry
-    ent_user: tb.Entry
-    ent_key: tb.Entry
-    btn_browse: tb.Button
-    btn_run: tb.Button
-    tree: tb.Treeview
-    btn_save: tb.Button
-    btn_add: tb.Button
-    btn_delete: tb.Button
+class MainWindow(QMainWindow):
+    ent_server: QLineEdit
+    ent_user: QLineEdit
+    ent_key: QLineEdit
+    btn_browse: QPushButton
+    btn_run: QPushButton
+    table: QTableWidget
+    btn_save: QPushButton
+    btn_add: QPushButton
+    btn_delete: QPushButton
 
     def __init__(self) -> None:
-        super().__init__(title="SSH GUI Tunnel Manager", themename="cosmo")
-        self.geometry("860x560")
-        self.minsize(720, 480)
-        self.resizable(True, True)
+        super().__init__()
+        self.setWindowTitle("SSH GUI Tunnel Manager")
+        self.resize(860, 560)
+        self.setMinimumSize(720, 480)
 
-        self._configure_styles()
+        central = QWidget()
+        self.setCentralWidget(central)
 
-        main_container = tb.Frame(self)
-        main_container.pack(fill="both", expand=True, padx=20, pady=20)
+        main_layout = QVBoxLayout(central)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(15)
 
-        bottom_frame = tb.Frame(main_container)
-        bottom_frame.pack(side="bottom", fill="x", pady=(15, 0))
+        # Top frame: fields + run button
+        top_widget = QWidget()
+        top_layout = QHBoxLayout(top_widget)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(15)
 
-        bottom_frame.columnconfigure(0, weight=1)
-        bottom_frame.columnconfigure(1, weight=1)
-        bottom_frame.columnconfigure(2, weight=1)
+        fields_widget = QWidget()
+        fields_layout = QGridLayout(fields_widget)
+        fields_layout.setContentsMargins(0, 0, 0, 0)
+        fields_layout.setHorizontalSpacing(10)
+        fields_layout.setVerticalSpacing(4)
+        fields_layout.setColumnStretch(1, 1)
 
-        self.btn_save = tb.Button(bottom_frame, text="Сохранить", bootstyle="dark", width=16)
-        self.btn_save.grid(row=0, column=0, sticky="w")
+        lbl_server = QLabel("Сервер:")
+        lbl_server.setStyleSheet("font-weight: bold;")
+        self.ent_server = QLineEdit()
+        align = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        fields_layout.addWidget(lbl_server, 0, 0, alignment=align)
+        fields_layout.addWidget(self.ent_server, 0, 1, 1, 2)
 
-        self.btn_delete = tb.Button(bottom_frame, text="Удалить", bootstyle="dark", width=16)
-        self.btn_delete.grid(row=0, column=1)
+        lbl_user = QLabel("Пользователь:")
+        lbl_user.setStyleSheet("font-weight: bold;")
+        self.ent_user = QLineEdit()
+        fields_layout.addWidget(lbl_user, 1, 0, alignment=align)
+        fields_layout.addWidget(self.ent_user, 1, 1, 1, 2)
 
-        self.btn_add = tb.Button(bottom_frame, text="Добавить", bootstyle="dark", width=16)
-        self.btn_add.grid(row=0, column=2, sticky="e")
+        lbl_key = QLabel("Ключ:")
+        lbl_key.setStyleSheet("font-weight: bold;")
+        self.ent_key = QLineEdit()
+        self.btn_browse = QPushButton("...")
+        self.btn_browse.setFixedWidth(32)
+        _ = self.btn_browse.clicked.connect(self._browse_key)
+        fields_layout.addWidget(lbl_key, 2, 0, alignment=align)
+        fields_layout.addWidget(self.ent_key, 2, 1)
+        fields_layout.addWidget(self.btn_browse, 2, 2)
 
-        top_frame = tb.Frame(main_container)
-        top_frame.pack(side="top", fill="x", pady=(0, 15))
+        top_layout.addWidget(fields_widget, stretch=1)
 
-        fields_frame = tb.Frame(top_frame)
-        fields_frame.pack(side="left", fill="x", expand=True)
-        fields_frame.columnconfigure(0, weight=0, minsize=110)
-        fields_frame.columnconfigure(1, weight=1)
-        fields_frame.columnconfigure(2, weight=0)
+        # Run button
+        self.btn_run = QPushButton("▶")
+        self.btn_run.setFixedSize(80, 80)
+        self.btn_run.setStyleSheet("font-size: 22px; font-weight: bold;")
+        top_layout.addWidget(self.btn_run, alignment=Qt.AlignmentFlag.AlignTop)
 
-        lbl_server = tb.Label(fields_frame, text="Сервер:", font=("Sans", 10, "bold"))
-        lbl_server.grid(row=0, column=0, padx=(0, 10), pady=4, sticky="e")
-        self.ent_server = tb.Entry(fields_frame, font=("Sans", 10))
-        self.ent_server.grid(row=0, column=1, columnspan=2, sticky="ew", pady=4)
+        main_layout.addWidget(top_widget)
 
-        lbl_user = tb.Label(fields_frame, text="Пользователь:", font=("Sans", 10, "bold"))
-        lbl_user.grid(row=1, column=0, padx=(0, 10), pady=4, sticky="e")
-        self.ent_user = tb.Entry(fields_frame, font=("Sans", 10))
-        self.ent_user.grid(row=1, column=1, columnspan=2, sticky="ew", pady=4)
+        # Table
+        self.table = QTableWidget(0, 4)
+        labels = ["Комментарий", "Адрес Ресурса", "Порт Ресурса", "Порт"]
+        self.table.setHorizontalHeaderLabels(labels)
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.table.setAlternatingRowColors(True)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        vheader = self.table.verticalHeader()
+        if vheader is not None:
+            vheader.setVisible(False)
 
-        lbl_key = tb.Label(fields_frame, text="Ключ:", font=("Sans", 10, "bold"))
-        lbl_key.grid(row=2, column=0, padx=(0, 10), pady=4, sticky="e")
-        self.ent_key = tb.Entry(fields_frame, font=("Sans", 10))
-        self.ent_key.grid(row=2, column=1, sticky="ew", pady=4)
+        header = self.table.horizontalHeader()
+        if header is not None:
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+            self.table.setColumnWidth(2, 110)
+            self.table.setColumnWidth(3, 120)
 
-        self.btn_browse = tb.Button(
-            fields_frame,
-            text="...",
-            bootstyle="secondary",
-            command=self._browse_key,
-            width=3,
+        main_layout.addWidget(self.table, stretch=1)
+
+        # Bottom frame
+        bottom_widget = QWidget()
+        bottom_layout = QHBoxLayout(bottom_widget)
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.btn_save = QPushButton("Сохранить")
+        self.btn_save.setFixedWidth(140)
+        self.btn_save.setStyleSheet("font-weight: bold;")
+
+        self.btn_delete = QPushButton("Удалить")
+        self.btn_delete.setFixedWidth(140)
+
+        self.btn_add = QPushButton("Добавить")
+        self.btn_add.setFixedWidth(140)
+
+        bottom_layout.addWidget(self.btn_save, alignment=Qt.AlignmentFlag.AlignLeft)
+        bottom_layout.addStretch()
+        bottom_layout.addWidget(self.btn_delete)
+        bottom_layout.addStretch()
+        bottom_layout.addWidget(self.btn_add, alignment=Qt.AlignmentFlag.AlignRight)
+
+        main_layout.addWidget(bottom_widget)
+
+        self._update_run_button_style(running=False)
+
+    def _update_run_button_style(self, *, running: bool) -> None:
+        style_running = (
+            "font-size: 22px; font-weight: bold; "
+            "background-color: #dc3545; color: white; border-radius: 6px;"
         )
-        self.btn_browse.grid(row=2, column=2, padx=(6, 0), pady=4)
-
-        run_frame = tb.Frame(top_frame)
-        run_frame.pack(side="right", padx=(15, 0), fill="both")
-
-        self.btn_run = tb.Button(
-            run_frame,
-            text="▶",
-            style="Run.dark.TButton",
-            width=5,
+        style_stopped = (
+            "font-size: 22px; font-weight: bold; "
+            "background-color: #343a40; color: white; border-radius: 6px;"
         )
-        self.btn_run.pack(fill="both", expand=True)
+        if running:
+            self.btn_run.setText("⏹")
+            self.btn_run.setStyleSheet(style_running)
+        else:
+            self.btn_run.setText("▶")
+            self.btn_run.setStyleSheet(style_stopped)
 
-        table_container = tb.Frame(main_container)
-        table_container.pack(side="top", fill="both", expand=True)
-
-        columns = ("comment", "rhost", "rport", "lport")
-        self.tree = tb.Treeview(
-            table_container,
-            columns=columns,
-            show="headings",
-            selectmode="browse",
-            bootstyle="dark",
-        )
-        self.tree.heading("comment", text="Комментарий", anchor="w")
-        self.tree.heading("rhost", text="Адрес Ресурса", anchor="w")
-        self.tree.heading("rport", text="Порт Ресурса", anchor="center")
-        self.tree.heading("lport", text="Порт", anchor="center")
-
-        self.tree.column("comment", width=220, minwidth=120, stretch=True)
-        self.tree.column("rhost", width=200, minwidth=120, stretch=True)
-        self.tree.column("rport", width=110, minwidth=80, stretch=False, anchor="center")
-        self.tree.column("lport", width=120, minwidth=80, stretch=False, anchor="center")
-
-        scrollbar = tb.Scrollbar(table_container, orient="vertical", command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
-
-        self.tree.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-    def _configure_styles(self) -> None:
-        style = tb.Style()
-        style.configure("Run.dark.TButton", font=("Sans", 22, "bold"))
-        style.configure("Run.danger.TButton", font=("Sans", 22, "bold"))
-
-    def refresh_tree_tags(self) -> None:
-        self.tree.tag_configure("even", background="#ffffff")
-        self.tree.tag_configure("odd", background="#f1f3f5")
+    def set_running_state(self, *, running: bool) -> None:
+        self._update_run_button_style(running=running)
+        enabled = not running
+        self.ent_server.setEnabled(enabled)
+        self.ent_user.setEnabled(enabled)
+        self.ent_key.setEnabled(enabled)
+        self.btn_browse.setEnabled(enabled)
 
     def _browse_key(self) -> None:
-        filename = filedialog.askopenfilename(
-            title="Выберите файл SSH ключа",
-            filetypes=[("SSH Keys / All Files", "*.*")],
-            parent=self,
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Выберите файл SSH ключа",
+            "",
+            "All Files (*.*)",
         )
         if filename:
-            self.ent_key.delete(0, tk.END)
-            self.ent_key.insert(0, filename)
+            self.ent_key.setText(filename)
