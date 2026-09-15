@@ -65,11 +65,3 @@ uv run python build.py
 ```
 
 Результат: `dist/ssh-gui` (однофайловая сборка PyInstaller, без консольного окна).
-
-## Проверка качества
-
-```bash
-uv run ruff check src build.py
-uv run mypy src build.py
-uv run basedpyright
-```

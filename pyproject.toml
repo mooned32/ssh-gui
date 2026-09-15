@@ -19,15 +19,6 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "W", "F", "I", "UP", "S", "B", "N"]
 
-[tool.mypy]
-python_version = "3.14"
-strict = true
-
-[[tool.mypy.overrides]]
-module = ["PyQt6", "PyQt6.*", "PyInstaller", "PyInstaller.*"]
-ignore_missing_imports = true
-disallow_untyped_calls = false
-
 [tool.basedpyright]
 include = ["src", "build.py"]
 pythonVersion = "3.14"
@@ -40,7 +31,6 @@ reportUnknownVariableType = false
 [dependency-groups]
 dev = [
     "basedpyright>=1.39.9",
-    "mypy>=2.3.0",
     "pyinstaller>=6.21.0",
     "ruff>=0.16.1",
 ]
