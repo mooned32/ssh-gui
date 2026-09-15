@@ -17,6 +17,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from signals import connect_signal, set_header_labels
+
 
 class AddTunnelDialog(QDialog):
     on_add: Callable[[str, str, int, int], None]
@@ -70,13 +72,13 @@ class AddTunnelDialog(QDialog):
 
         btn_cancel = QPushButton("Отмена")
         btn_cancel.setFixedWidth(110)
-        _ = btn_cancel.clicked.connect(self.reject)
+        connect_signal(btn_cancel.clicked, self.reject)
         btn_layout.addWidget(btn_cancel)
 
         btn_add = QPushButton("Добавить")
         btn_add.setFixedWidth(110)
         btn_add.setStyleSheet("font-weight: bold;")
-        _ = btn_add.clicked.connect(self._submit)
+        connect_signal(btn_add.clicked, self._submit)
         btn_layout.addWidget(btn_add)
 
         layout.addLayout(btn_layout)
@@ -156,7 +158,7 @@ class MainWindow(QMainWindow):
         self.ent_key = QLineEdit()
         self.btn_browse = QPushButton("...")
         self.btn_browse.setFixedWidth(32)
-        _ = self.btn_browse.clicked.connect(self._browse_key)
+        connect_signal(self.btn_browse.clicked, self._browse_key)
         fields_layout.addWidget(lbl_key, 2, 0, alignment=align)
         fields_layout.addWidget(self.ent_key, 2, 1)
         fields_layout.addWidget(self.btn_browse, 2, 2)
@@ -174,7 +176,7 @@ class MainWindow(QMainWindow):
         # Table
         self.table = QTableWidget(0, 4)
         labels = ["Комментарий", "Адрес Ресурса", "Порт Ресурса", "Порт"]
-        self.table.setHorizontalHeaderLabels(labels)
+        set_header_labels(self.table, labels)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.setAlternatingRowColors(True)

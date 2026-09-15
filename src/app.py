@@ -2,6 +2,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem
 
 from config import Config, Tunnel, load_config, save_config
+from signals import connect_signal
 from ssh_runner import SSHRunner
 from ui import AddTunnelDialog, MainWindow
 
@@ -25,14 +26,14 @@ class App:
 
         self._timer = QTimer(self.ui)
         self._timer.setInterval(1000)
-        _ = self._timer.timeout.connect(self._check_ssh_status)
+        connect_signal(self._timer.timeout, self._check_ssh_status)
         self._timer.start()
 
     def _bind_events(self) -> None:
-        _ = self.ui.btn_save.clicked.connect(self.save_data)
-        _ = self.ui.btn_add.clicked.connect(self.show_add_dialog)
-        _ = self.ui.btn_delete.clicked.connect(self.delete_selected)
-        _ = self.ui.btn_run.clicked.connect(self.toggle_ssh)
+        connect_signal(self.ui.btn_save.clicked, self.save_data)
+        connect_signal(self.ui.btn_add.clicked, self.show_add_dialog)
+        connect_signal(self.ui.btn_delete.clicked, self.delete_selected)
+        connect_signal(self.ui.btn_run.clicked, self.toggle_ssh)
 
     def _load_to_ui(self) -> None:
         self.ui.ent_server.setText(self.config.server)

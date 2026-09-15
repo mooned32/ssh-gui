@@ -3,6 +3,7 @@ import sys
 from PyQt6.QtWidgets import QApplication
 
 from app import App
+from signals import connect_signal
 
 
 def main() -> int:
@@ -13,7 +14,7 @@ def main() -> int:
     controller.ui.show()
 
     # Ensure SSH is stopped on exit
-    _ = app.aboutToQuit.connect(controller.ssh.stop)
+    connect_signal(app.aboutToQuit, controller.ssh.stop)
 
     return app.exec()
 

@@ -13,6 +13,7 @@ a = Analysis(
     hiddenimports=[
         "app",
         "config",
+        "signals",
         "ssh_runner",
         "ui",
     ],
