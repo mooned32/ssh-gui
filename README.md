@@ -22,13 +22,7 @@
 
 ```bash
 uv sync            # создать виртуальное окружение и установить зависимости
-uv run ssh-gui     # запустить приложение
-```
-
-Либо запуск напрямую:
-
-```bash
-.venv/bin/ssh-gui
+uv run python src/main.py   # запустить приложение
 ```
 
 ## Использование
@@ -60,8 +54,11 @@ ssh -N -o ExitOnForwardFailure=yes \
 
 ## Сборка автономного бинарника
 
+PyInstaller собирает приложение для платформы, на которой запускается сборка.
+
 ```bash
-uv run python build.py
+uv sync --group build
+uv run pyinstaller --clean ssh-gui.spec
 ```
 
-Результат: `dist/ssh-gui` (однофайловая сборка PyInstaller, без консольного окна).
+Результат сборки находится в `dist/`.

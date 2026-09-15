@@ -5,13 +5,6 @@ description = "SSH Tunnel Manager GUI"
 requires-python = ">=3.12"
 dependencies = ["PyQt6>=6.6.0"]
 
-[project.scripts]
-ssh-gui = "ssh_gui:main"
-
-[build-system]
-requires = ["uv_build>=0.12.2,<0.13.0"]
-build-backend = "uv_build"
-
 [tool.ruff]
 line-length = 100
 target-version = "py312"
@@ -20,17 +13,27 @@ target-version = "py312"
 select = ["E", "W", "F", "I", "UP", "S", "B", "N"]
 
 [tool.basedpyright]
-include = ["src", "build.py"]
-pythonVersion = "3.14"
-reportUnusedCallResult = false
-reportAny = false
-reportUnknownMemberType = false
-reportUnknownArgumentType = false
-reportUnknownVariableType = false
+include = ["src"]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+failOnWarnings = true
+reportAny = true
+reportExplicitAny = true
+reportUnknownParameterType = true
+reportUnknownArgumentType = true
+reportUnknownVariableType = true
+reportUnknownMemberType = true
+reportUnknownLambdaType = true
+reportMissingParameterType = true
+reportMissingTypeArgument = true
+reportPrivateUsage = true
+reportUnnecessaryCast = true
+reportUnnecessaryComparison = true
+reportUnreachable = true
 
 [dependency-groups]
-dev = [
-    "basedpyright>=1.39.9",
-    "pyinstaller>=6.21.0",
-    "ruff>=0.16.1",
-]
+dev = ["basedpyright>=1.40.1", "ruff>=0.16.7"]
+build = ["pyinstaller>=6.22.3"]
+
+[tool.uv]
+package = false

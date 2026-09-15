@@ -11,8 +11,3 @@ wheels/
 
 # Tooling caches
 .ruff_cache/
-.mypy_cache/
-.basedpyright/
-
-# PyInstaller
-*.spec

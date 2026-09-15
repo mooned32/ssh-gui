@@ -1,9 +1,9 @@
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem
 
-from ssh_gui.config import Config, Tunnel, load_config, save_config
-from ssh_gui.ssh_runner import SSHRunner
-from ssh_gui.ui import AddTunnelDialog, MainWindow
+from config import Config, Tunnel, load_config, save_config
+from ssh_runner import SSHRunner
+from ui import AddTunnelDialog, MainWindow
 
 
 class App:

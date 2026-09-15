@@ -1,7 +1,7 @@
 import subprocess
 import sys
 
-from .config import Config
+from config import Config
 
 
 class SSHRunner:
